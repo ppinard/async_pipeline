@@ -46,12 +46,11 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     description="Execute pipeline asynchronously",
-    install_requires=requirements,
+    long_description=LONG_DESCRIPTION,
     license="Apache Software License 2.0",
-    long_description=LONG_DESCRIPTION
-    include_package_data=True,
 
     packages=PACKAGES,
+    include_package_data=True,
 
     install_requires=INSTALL_REQUIRES,
     extras_require=EXTRAS_REQUIRE,
