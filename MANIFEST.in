@@ -1,0 +1,4 @@
+include versioneer.py
+include async_pipeline/_version.py
+recursive-include tests *.py
+include async_pipeline/_version.py
