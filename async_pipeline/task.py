@@ -8,10 +8,10 @@
 
 # Globals and constants variables.
 
-class Reaction:
+class Task:
 
     def __init__(self, name):
         self.name = name
 
-    def process(self, reactant):
+    def run(self, inputobj):
         raise NotImplementedError
