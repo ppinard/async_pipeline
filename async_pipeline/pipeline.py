@@ -2,6 +2,7 @@
 
 # Standard library modules.
 import asyncio
+import itertools
 from concurrent.futures.thread import ThreadPoolExecutor
 
 # Third party modules.
@@ -21,27 +22,37 @@ class Pipeline:
         for i, task in enumerate(tasks):
             logger.info('Running task "{}"', task.name)
 
+            # Run task asynchronously or using the executor.
             try:
                 if asyncio.iscoroutinefunction(task.run):
                     list_outputdata = await task.run(inputdata)
                 else:
                     list_outputdata = await loop.run_in_executor(self.executor, task.run, inputdata)
             except:
-                logger.exception('Task "{}" failed', task.name)
+                logger.error('Task "{}" failed', task.name)
                 raise
 
             logger.info('Task "{}" succeeded with {} outputs', task.name, len(list_outputdata))
 
+            # If no output, there is nothing left to do.
             if not list_outputdata:
                 return []
 
+            # Remaining tasks
             newtasks = tasks[i+1:]
+
+            # If no remaining tasks, there is nothing left to do.
             if not newtasks:
                 return list_outputdata
 
-            for outputdata in list_outputdata:
-                return await self._run(loop, newtasks, outputdata)
+            # Run the remaining tasks.
+            coroutines = [self._run(loop, newtasks, outputdata) for outputdata in list_outputdata]
+            list_new_outputdata = await asyncio.gather(*coroutines)
+            return list(itertools.chain.from_iterable(list_new_outputdata)) # Flatten
 
     async def run(self, inputdata):
+        """
+        Runs the *inputdata* through the pipeline.
+        """
         loop = asyncio.get_running_loop()
         return await self._run(loop, self.tasks, inputdata)

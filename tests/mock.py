@@ -10,8 +10,6 @@ class AdditionInput:
 
 @dataclasses.dataclass
 class AdditionOutput:
-    x: float
-    y: float
     value: float
 
 @dataclasses.dataclass
@@ -20,30 +18,29 @@ class PowerInput:
 
 @dataclasses.dataclass
 class PowerOutput:
-    x: float
     value: float
 
-class AdditionTask(Task):
+class ArithmeticTask(Task):
 
-    async def run(self, inputobj):
-        return [AdditionOutput(inputobj.x, inputobj.y, inputobj.x + inputobj.y)]
+    async def run(self, inputdata):
+        return [AdditionOutput(inputdata.x + inputdata.y), AdditionOutput(inputdata.x - inputdata.y)]
 
 class AdditionOutputToPowerInputTask(Task):
 
-    async def run(self, inputobj):
-        return [PowerInput(inputobj.value)]
+    async def run(self, inputdata):
+        return [PowerInput(inputdata.value)]
 
-class SquarePowerTask(Task):
+class PowerTask(Task):
 
-    def run(self, inputobj):
-        return [PowerOutput(inputobj.x, inputobj.x ** 2)]
+    def run(self, inputdata):
+        return [PowerOutput(inputdata.x ** 2), PowerOutput(inputdata.x ** 3)]
 
 class FailedTask(Task):
 
-    def run(self, inputobj):
+    def run(self, inputdata):
         raise RuntimeError('Task has failed')
 
 class FailedAsyncTask(Task):
 
-    async def run(self, inputobj):
+    async def run(self, inputdata):
         raise RuntimeError('Task has failed')
