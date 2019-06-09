@@ -2,11 +2,11 @@
 async pipeline
 ==============
 
-.. image:: https://img.shields.io/pypi/v/async_pipeline.svg
-        :target: https://pypi.python.org/pypi/async_pipeline
+.. image:: https://img.shields.io/pypi/v/pipeline_async.svg
+        :target: https://pypi.python.org/pypi/pipeline_async
 
-.. image:: https://img.shields.io/travis/ppinard/async_pipeline.svg
-        :target: https://travis-ci.org/ppinard/async_pipeline
+.. image:: https://img.shields.io/travis/ppinard/pipeline_async.svg
+        :target: https://travis-ci.org/ppinard/pipeline_async
 
 .. image:: https://readthedocs.org/projects/async-pipeline/badge/?version=latest
         :target: https://async-pipeline.readthedocs.io/en/latest/?badge=latest
@@ -20,12 +20,12 @@ Installation
 
 Easiest way to install using ``pip``::
 
-    pip install async_pipeline
+    pip install pipeline_async
 
 For development installation from the git repository::
 
-    git clone git@github.com/ppinard/async_pipeline.git
-    cd async_pipeline
+    git clone git@github.com/ppinard/pipeline_async.git
+    cd pipeline_async
     pip install -e .
 
 Release notes

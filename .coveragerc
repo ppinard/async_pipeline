@@ -1,2 +1,2 @@
 [run]
-omit=async_pipeline/_version.py
+omit=pipeline_async/_version.py

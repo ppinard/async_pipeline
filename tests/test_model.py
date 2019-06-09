@@ -7,7 +7,7 @@ import typing
 # Third party modules.
 
 # Local modules.
-from async_pipeline.model import SqlModel
+from pipeline_async.model import SqlModel
 import mock
 
 # Globals and constants variables.

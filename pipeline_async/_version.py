@@ -42,8 +42,8 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = ""
-    cfg.parentdir_prefix = "async_pipeline-"
-    cfg.versionfile_source = "async_pipeline/_version.py"
+    cfg.parentdir_prefix = "pipeline_async-"
+    cfg.versionfile_source = "pipeline_async/_version.py"
     cfg.verbose = False
     return cfg
 

@@ -5,8 +5,8 @@
 # Third party modules.
 
 # Local modules.
-from async_pipeline.model import SqlModel
-from async_pipeline.task import ModelTask
+from pipeline_async.model import SqlModel
+from pipeline_async.task import ModelTask
 import mock
 
 # Globals and constants variables.

@@ -18,7 +18,7 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(BASEDIR, 'README.rst'), 'r') as fp:
     LONG_DESCRIPTION = fp.read()
 
-PACKAGES = find_packages(include=['async_pipeline'])
+PACKAGES = find_packages(include=['pipeline_async'])
 
 with open(os.path.join(BASEDIR, 'requirements.txt'), 'r') as fp:
     INSTALL_REQUIRES = fp.read().splitlines()
@@ -32,9 +32,9 @@ CMDCLASS = versioneer.get_cmdclass()
 ENTRY_POINTS = {}
 
 setup(
-    name='async_pipeline',
+    name='pipeline-async',
     version=versioneer.get_version(),
-    url='https://github.com/ppinard/async_pipeline',
+    url='https://github.com/ppinard/pipeline-async',
     author="Philippe Pinard",
     author_email='philippe.pinard@gmail.com',
     classifiers=[

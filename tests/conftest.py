@@ -6,7 +6,7 @@
 import pytest
 
 # Local modules.
-from async_pipeline.model import SqlModel
+from pipeline_async.model import SqlModel
 
 # Globals and constants variables.
 
@@ -14,5 +14,5 @@ from async_pipeline.model import SqlModel
 @pytest.fixture
 def sqlmodel(tmp_path_factory):
     return SqlModel.from_filepath(
-        tmp_path_factory.mktemp("test").joinpath("async_pipeline.db")
+        tmp_path_factory.mktemp("test").joinpath("model.db")
     )

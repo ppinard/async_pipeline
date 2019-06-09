@@ -6,7 +6,7 @@
 import pytest
 
 # Local modules.
-from async_pipeline.pipeline import Pipeline
+from pipeline_async.pipeline import Pipeline
 import mock
 
 # Globals and constants variables.

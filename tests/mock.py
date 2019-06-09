@@ -1,7 +1,7 @@
 import asyncio
 import dataclasses
 
-from async_pipeline.task import Task
+from pipeline_async.task import Task
 
 
 @dataclasses.dataclass
