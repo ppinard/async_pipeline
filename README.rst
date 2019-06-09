@@ -1,5 +1,5 @@
 ==============
-async pipeline
+pipeline-async
 ==============
 
 .. image:: https://img.shields.io/pypi/v/pipeline_async.svg
