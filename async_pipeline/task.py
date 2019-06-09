@@ -16,6 +16,28 @@ class Task:
     def run(self, inputdata):
         """
         Executes the task based on the provided *inputdata* and returns a :class:`list` of *outputdata*.
-        The :meth:`run` method can be made `async` if needed.
         """
+        return []
+
+class ModelTask(Task):
+
+    def __init__(self, name, model):
+        super().__init__(name)
+        self.model = model
+
+    def run(self, inputdata):
+        # Check if already exists.
+        list_outputdata = self.model.find(self.name, inputdata)
+        if list_outputdata:
+            return list_outputdata
+
+        # Run.
+        list_outputdata = self._run(inputdata)
+
+        # Add to model.
+        self.model.add(self.name, inputdata, list_outputdata)
+
+        return list_outputdata
+
+    def _run(self, inputdata):
         return []

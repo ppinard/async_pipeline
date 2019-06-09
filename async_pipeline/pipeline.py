@@ -20,19 +20,16 @@ class Pipeline:
 
     async def _run(self, loop, tasks, inputdata):
         for i, task in enumerate(tasks):
-            logger.info('Running task "{}"', task.name)
+            logger.debug('Running task "{}"', task.name)
 
-            # Run task asynchronously or using the executor.
+            # Run task.
             try:
-                if asyncio.iscoroutinefunction(task.run):
-                    list_outputdata = await task.run(inputdata)
-                else:
-                    list_outputdata = await loop.run_in_executor(self.executor, task.run, inputdata)
+                list_outputdata = await loop.run_in_executor(self.executor, task.run, inputdata)
             except:
                 logger.error('Task "{}" failed', task.name)
                 raise
 
-            logger.info('Task "{}" succeeded with {} outputs', task.name, len(list_outputdata))
+            logger.debug('Task "{}" succeeded with {} outputs', task.name, len(list_outputdata))
 
             # If no output, there is nothing left to do.
             if not list_outputdata:
