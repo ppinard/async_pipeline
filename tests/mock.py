@@ -26,24 +26,21 @@ class PowerOutput:
 
 
 class ArithmeticTask(Task):
-    def run(self, inputdata):
-        return [
-            ArithmeticOutput(inputdata.x + inputdata.y),
-            ArithmeticOutput(inputdata.x - inputdata.y),
-        ]
+    def _run(self, inputdata):
+        return [ArithmeticOutput(inputdata.x + inputdata.y), ArithmeticOutput(inputdata.x - inputdata.y)]
 
 
 class ArithmeticOutputToPowerInputTask(Task):
-    def run(self, inputdata):
+    def _run(self, inputdata):
         return [PowerInput(inputdata.value)]
 
 
 class PowerTask(Task):
-    def run(self, inputdata):
+    def _run(self, inputdata):
         return [PowerOutput(inputdata.x ** 2), PowerOutput(inputdata.x ** 3)]
 
 
 class FailedTask(Task):
-    def run(self, inputdata):
+    def _run(self, inputdata):
         raise RuntimeError("Task has failed")
 

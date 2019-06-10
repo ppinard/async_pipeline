@@ -1,32 +1,30 @@
 """"""
 
 # Standard library modules.
+import abc
 
 # Third party modules.
 
 # Local modules.
+from .model import PassThroughModel
 
 # Globals and constants variables.
 
-class Task:
+class Task(metaclass=abc.ABCMeta):
 
-    def __init__(self, name):
+    def __init__(self, name, model=None, outputdataclass=None):
         self.name = name
+
+        if model is None:
+            model = PassThroughModel()
+        self.model = model
+
+        self.outputdataclass = outputdataclass
 
     def run(self, inputdata):
         """
         Executes the task based on the provided *inputdata* and returns a :class:`list` of *outputdata*.
         """
-        return []
-
-class ModelTask(Task):
-
-    def __init__(self, name, model, outputdataclass):
-        super().__init__(name)
-        self.model = model
-        self.outputdataclass = outputdataclass
-
-    def run(self, inputdata):
         # Check if already exists.
         list_outputdata = self.model.find(self.name, inputdata, self.outputdataclass)
         if list_outputdata:
@@ -40,5 +38,6 @@ class ModelTask(Task):
 
         return list_outputdata
 
-    def _run(self, inputdata):
-        return []
+    @abc.abstractmethod
+    def _run(self, inputdata): # pragma: no cover
+        raise NotImplementedError

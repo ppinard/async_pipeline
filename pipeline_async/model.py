@@ -4,7 +4,6 @@
 import abc
 import datetime
 import dataclasses
-import re
 
 # Third party modules.
 import sqlalchemy
@@ -16,27 +15,28 @@ from .datautil import iskeyfield, keyfields
 
 # Globals and constants variables.
 
+
 class Model(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def find(self, task_name, inputdata, outputdataclass):  # pragma: no cover
+        raise NotImplementedError
 
     @abc.abstractmethod
+    def add(self, task_name, inputdata, *list_outputdata):  # pragma: no cover
+        raise NotImplementedError
+
+
+class PassThroughModel(Model):
     def find(self, task_name, inputdata, outputdataclass):
-        raise NotImplementedError
+        return []  # Never find anything
 
-    @abc.abstractmethod
     def add(self, task_name, inputdata, *list_outputdata):
-        raise NotImplementedError
+        pass
 
-def camelcase_to_words(text):
-    return re.sub('([a-z0-9])([A-Z])', r'\1 \2', text)
 
 class SqlModel(Model):
 
-    TYPE_TO_SQLTYPE = {int: sqlalchemy.Integer,
-                       float: sqlalchemy.Float,
-                       str: sqlalchemy.String,
-                       bytes: sqlalchemy.LargeBinary,
-                       datetime.datetime: sqlalchemy.DateTime,
-                       bool: sqlalchemy.Boolean}
+    TYPE_TO_SQLTYPE = {int: sqlalchemy.Integer, float: sqlalchemy.Float, str: sqlalchemy.String, bytes: sqlalchemy.LargeBinary, datetime.datetime: sqlalchemy.DateTime, bool: sqlalchemy.Boolean}
 
     def __init__(self, engine):
         self.engine = engine
@@ -44,7 +44,7 @@ class SqlModel(Model):
 
     @classmethod
     def from_filepath(cls, filepath):
-        engine = sqlalchemy.create_engine('sqlite:///' + str(filepath))
+        engine = sqlalchemy.create_engine("sqlite:///" + str(filepath))
         return cls(engine)
 
     def _require_table(self, task_name, inputdata, outputdata):
@@ -71,16 +71,16 @@ class SqlModel(Model):
     def _create_column(self, field):
         column_type = self.TYPE_TO_SQLTYPE.get(field.type)
         if column_type is None:
-            raise ValueError('Cannot convert {} to SQL column'.format(field.name))
+            raise ValueError("Cannot convert {} to SQL column".format(field.name))
 
         if column_type is sqlalchemy.String and iskeyfield(field):
-            column_type = sqlalchemy.String(collation='NOCASE')
+            column_type = sqlalchemy.String(collation="NOCASE")
 
         nullable = field.default is None
 
         info = {}
         if iskeyfield(field):
-            info['key'] = True
+            info["key"] = True
 
         return sqlalchemy.Column(field.name, column_type, nullable=nullable, info=info)
 
@@ -104,7 +104,7 @@ class SqlModel(Model):
                 columns.append(table.c[field.name])
 
         statement = sqlalchemy.sql.select(columns).where(sqlalchemy.sql.and_(*clauses))
-        logger.debug('Find statement: {}', str(statement.compile()).replace('\n', ''))
+        logger.debug("Find statement: {}", str(statement.compile()).replace("\n", ""))
 
         # Execute
         list_outputdata = []
@@ -116,10 +116,10 @@ class SqlModel(Model):
 
     def add(self, task_name, inputdata, *list_outputdata):
         if not list_outputdata:
-            logger.debug('No output to add to database')
+            logger.debug("No output to add to database")
             return
 
-        logger.debug('Preparing to add {} outputs to database'.format(len(list_outputdata)))
+        logger.debug("Preparing to add {} outputs to database".format(len(list_outputdata)))
 
         inputrow = dict((field.name, getattr(inputdata, field.name)) for field in keyfields(inputdata))
 
@@ -134,6 +134,6 @@ class SqlModel(Model):
         table = self._require_table(task_name, inputdata, list_outputdata[0])
 
         with self.engine.begin() as conn:
-            conn.execute(table.insert(), rows) # pylint: disable=no-value-for-parameter
+            conn.execute(table.insert(), rows)  # pylint: disable=no-value-for-parameter
 
-        logger.debug('{} outputs added to database'.format(len(rows)))
+        logger.debug("{} outputs added to database".format(len(rows)))
