@@ -13,6 +13,10 @@ import mock
 
 
 class ArithmeticModelTask(ModelTask):
+
+    def __init__(self, name, model):
+        super().__init__(name, model, mock.ArithmeticOutput)
+
     def _run(self, inputdata):
         return [
             mock.ArithmeticOutput(inputdata.x + inputdata.y),
@@ -27,6 +31,6 @@ def test_modeltask_run(sqlmodel):
     list_outputdata = task.run(inputdata)
     assert len(list_outputdata) == 2
 
-    list_outputdata = sqlmodel.find("arithmetic", inputdata)
+    list_outputdata = sqlmodel.find("arithmetic", inputdata, mock.ArithmeticOutput)
     assert len(list_outputdata) == 2
 

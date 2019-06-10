@@ -19,11 +19,11 @@ from .datautil import iskeyfield, keyfields
 class Model(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def find(self, task_name, inputdata):
+    def find(self, task_name, inputdata, outputdataclass):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add(self, task_name, inputdata, list_outputdata):
+    def add(self, task_name, inputdata, *list_outputdata):
         raise NotImplementedError
 
 def camelcase_to_words(text):
@@ -84,33 +84,7 @@ class SqlModel(Model):
 
         return sqlalchemy.Column(field.name, column_type, nullable=nullable, info=info)
 
-    def _create_outputdataclass(self, table, column_names):
-        fields = []
-        for column_name in column_names:
-            column = table.c[column_name]
-            fields.append(self._create_field(column))
-
-        return dataclasses.make_dataclass('Dummy', fields)
-
-    def _create_field(self, column):
-        SQLTYPE_TO_TYPE = {v: k for k, v in self.TYPE_TO_SQLTYPE.items()}
-        type_ = SQLTYPE_TO_TYPE.get(column.type.__class__)
-        if type_ is None:
-            raise ValueError('Cannot convert SQL column {}'.format(column.type.__class__.__name__))
-
-        name = column.name
-
-        metadata = {}
-        if column.info.get('key'):
-            metadata['key'] = True
-
-        default = dataclasses.MISSING
-        if column.nullable:
-            default = None
-
-        return (name, type_, dataclasses.field(default=default, metadata=metadata))
-
-    def find(self, task_name, inputdata):
+    def find(self, task_name, inputdata, outputdataclass):
         # Find table
         table = self.metadata.tables.get(task_name)
 
@@ -124,24 +98,23 @@ class SqlModel(Model):
             clause = table.c[field.name] == getattr(inputdata, field.name)
             clauses.append(clause)
 
-        statement = sqlalchemy.sql.select(table.columns).where(sqlalchemy.sql.and_(*clauses))
+        columns = []
+        for field in dataclasses.fields(outputdataclass):
+            if field.name in table.columns:
+                columns.append(table.c[field.name])
+
+        statement = sqlalchemy.sql.select(columns).where(sqlalchemy.sql.and_(*clauses))
         logger.debug('Find statement: {}', str(statement.compile()).replace('\n', ''))
 
         # Execute
         list_outputdata = []
         with self.engine.begin() as conn:
-            resultproxy = conn.execute(statement)
-
-            # Create dummy dataclass.
-            dataclass = self._create_outputdataclass(table, resultproxy.keys())
-
-            # Create outputdata.
-            for row in resultproxy:
-                list_outputdata.append(dataclass(**row))
+            for row in conn.execute(statement):
+                list_outputdata.append(outputdataclass(**row))
 
         return list_outputdata
 
-    def add(self, task_name, inputdata, list_outputdata):
+    def add(self, task_name, inputdata, *list_outputdata):
         if not list_outputdata:
             logger.debug('No output to add to database')
             return
