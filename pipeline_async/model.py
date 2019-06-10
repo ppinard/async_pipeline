@@ -40,7 +40,9 @@ class SqlModel(Model):
 
     def __init__(self, engine):
         self.engine = engine
+
         self.metadata = sqlalchemy.MetaData()
+        self.metadata.reflect(engine)
 
     @classmethod
     def from_filepath(cls, filepath):
