@@ -13,29 +13,24 @@ import mock
 # Globals and constants variables.
 
 
-def test_sqlmodel_find_notable(sqlmodel):
-    inputdata = mock.ArithmeticInput(3, 4)
-    list_outputdata = sqlmodel.find("test", inputdata, mock.ArithmeticOutput)
-    assert len(list_outputdata) == 0
+def test_sqlmodel_exists_notable(sqlmodel):
+    data = mock.ArithmeticData(3, 4, 7)
+    assert not sqlmodel.exists(data)
 
 
-def test_sqlmodel_find_nodata(sqlmodel):
-    inputdata = mock.ArithmeticInput(3, 4)
-    sqlmodel.add("test", inputdata, mock.ArithmeticOutput(7))
+def test_sqlmodel_exists_nodata(sqlmodel):
+    data = mock.ArithmeticData(3, 4, 7)
+    sqlmodel.add(data)
 
-    inputdata = mock.ArithmeticInput(3, 99)
-    list_outputdata = sqlmodel.find("test", inputdata, mock.ArithmeticOutput)
-    assert len(list_outputdata) == 0
+    data = mock.ArithmeticData(3, 4, -1)
+    assert sqlmodel.exists(data)
 
+    data = mock.ArithmeticData(3, 99, 102)
+    assert not sqlmodel.exists(data)
 
-def test_sqlmodel_find(sqlmodel):
-    inputdata = mock.ArithmeticInput(3, 4)
-    sqlmodel.add("test", inputdata, mock.ArithmeticOutput(7))
-    list_outputdata = sqlmodel.find("test", inputdata, mock.ArithmeticOutput)
-
-    assert len(list_outputdata) == 1
-
-    outputdata = list_outputdata[0]
-    assert isinstance(outputdata, mock.ArithmeticOutput)
-    assert outputdata.value == 7
+def test_sqlmodel_exists(sqlmodel):
+    data = mock.ArithmeticData(3, 4, 7)
+    rowid = sqlmodel.add(data)
+    assert rowid == 1
+    assert sqlmodel.exists(data)
 

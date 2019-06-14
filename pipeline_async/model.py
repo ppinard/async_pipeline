@@ -1,9 +1,12 @@
 """"""
 
+__all__ = ['Model', 'PassThroughModel', 'SqlModel']
+
 # Standard library modules.
 import abc
 import datetime
 import dataclasses
+import inspect
 
 # Third party modules.
 import sqlalchemy
@@ -12,26 +15,27 @@ from loguru import logger
 
 # Local modules.
 from .datautil import iskeyfield, keyfields
+from .util import camelcase_to_words
 
 # Globals and constants variables.
 
 
 class Model(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def find(self, task_name, inputdata, outputdataclass):  # pragma: no cover
+    def exists(self, data):  # pragma: no cover
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add(self, task_name, inputdata, *list_outputdata):  # pragma: no cover
+    def add(self, data):  # pragma: no cover
         raise NotImplementedError
 
 
 class PassThroughModel(Model):
-    def find(self, task_name, inputdata, outputdataclass):
-        return []  # Never find anything
+    def exists(self, data):
+        return False
 
-    def add(self, task_name, inputdata, *list_outputdata):
-        pass
+    def add(self, data):
+        return []
 
 
 class SqlModel(Model):
@@ -49,18 +53,35 @@ class SqlModel(Model):
         engine = sqlalchemy.create_engine("sqlite:///" + str(filepath))
         return cls(engine)
 
-    def _require_table(self, task_name, inputdata, outputdata):
-        table = self.metadata.tables.get(task_name)
+    def _get_table_name(self, data_or_dataclass):
+        if not inspect.isclass(data_or_dataclass):
+            data_or_dataclass = type(data_or_dataclass)
+
+        name = data_or_dataclass.__name__.lower()
+        return "_".join(camelcase_to_words(name).split())
+
+    def _require_table(self, data_or_dataclass):
+        table_name = self._get_table_name(data_or_dataclass)
+        table = self.metadata.tables.get(table_name)
 
         if table is None:
-            table = self._create_table(task_name, inputdata, outputdata)
+            table = self._create_table(table_name, data_or_dataclass)
 
         return table
 
-    def _create_table(self, table_name, inputdata, outputdata):
+    def get_table(self, data_or_dataclass):
+        table_name = self._get_table_name(data_or_dataclass)
+        table = self.metadata.tables.get(table_name)
+
+        if table is None:
+            raise ValueError('No table named: {}'.format(table_name))
+
+        return table
+
+    def _create_table(self, table_name, data_or_dataclass):
         # Add column for key fields of inputdata and all fields of outputdata.
-        columns = []
-        for field in keyfields(inputdata) + dataclasses.fields(outputdata):
+        columns = [sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True)]
+        for field in dataclasses.fields(data_or_dataclass):
             columns.append(self._create_column(field))
 
         # Create table.
@@ -80,62 +101,40 @@ class SqlModel(Model):
 
         nullable = field.default is None
 
-        info = {}
-        if iskeyfield(field):
-            info["key"] = True
+        return sqlalchemy.Column(field.name, column_type, nullable=nullable)
 
-        return sqlalchemy.Column(field.name, column_type, nullable=nullable, info=info)
-
-    def find(self, task_name, inputdata, outputdataclass):
+    def exists(self, data):
         # Find table
-        table = self.metadata.tables.get(task_name)
-
-        # No output if table does not exists
+        table_name = self._get_table_name(data)
+        table = self.metadata.tables.get(table_name)
         if table is None:
-            return []
+            return False
 
         # Build statement
         clauses = []
-        for field in keyfields(inputdata):
-            clause = table.c[field.name] == getattr(inputdata, field.name)
-            clauses.append(clause)
-
         columns = []
-        for field in dataclasses.fields(outputdataclass):
-            if field.name in table.columns:
-                columns.append(table.c[field.name])
+        for field in keyfields(data):
+            clause = table.c[field.name] == getattr(data, field.name)
+            clauses.append(clause)
+            columns.append(table.c[field.name])
+
+        # No key fields
+        if not columns:
+            return False
 
         statement = sqlalchemy.sql.select(columns).where(sqlalchemy.sql.and_(*clauses))
         logger.debug("Find statement: {}", str(statement.compile()).replace("\n", ""))
 
         # Execute
-        list_outputdata = []
         with self.engine.begin() as conn:
-            for row in conn.execute(statement):
-                list_outputdata.append(outputdataclass(**row))
+            row = conn.execute(statement).first()
+            return row is not None
 
-        return list_outputdata
-
-    def add(self, task_name, inputdata, *list_outputdata):
-        if not list_outputdata:
-            logger.debug("No output to add to database")
-            return
-
-        logger.debug("Preparing to add {} outputs to database".format(len(list_outputdata)))
-
-        inputrow = dict((field.name, getattr(inputdata, field.name)) for field in keyfields(inputdata))
-
-        rows = []
-        for outputdata in list_outputdata:
-            row = {}
-            row.update(inputrow)
-            row.update(dataclasses.asdict(outputdata))
-            rows.append(row)
-
-        # Get or create table.
-        table = self._require_table(task_name, inputdata, list_outputdata[0])
+    def add(self, data):
+        table = self._require_table(data)
+        row = dataclasses.asdict(data)
 
         with self.engine.begin() as conn:
-            conn.execute(table.insert(), rows)  # pylint: disable=no-value-for-parameter
-
-        logger.debug("{} outputs added to database".format(len(rows)))
+            result = conn.execute(table.insert(), row)  # pylint: disable=no-value-for-parameter
+            logger.debug("Added output to table {}".format(table.name))
+            return result.inserted_primary_key[0]

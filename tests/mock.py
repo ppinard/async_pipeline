@@ -5,42 +5,60 @@ from pipeline_async.task import Task
 
 
 @dataclasses.dataclass
-class ArithmeticInput:
+class ArithmeticData:
     x: float = dataclasses.field(metadata={"key": True})
     y: float = dataclasses.field(metadata={"key": True})
-
-
-@dataclasses.dataclass
-class ArithmeticOutput:
     value: float = None
 
 
 @dataclasses.dataclass
-class PowerInput:
+class PowerData:
     x: float = dataclasses.field(metadata={"key": True})
-
-
-@dataclasses.dataclass
-class PowerOutput:
-    value: float
+    value: float = None
 
 
 class ArithmeticTask(Task):
-    def _run(self, inputdata):
-        return [ArithmeticOutput(inputdata.x + inputdata.y), ArithmeticOutput(inputdata.x - inputdata.y)]
+    def __init__(self, x, y, model=None):
+        super().__init__(model)
+        self.x = x
+        self.y = y
 
+    async def run(self):
+        if self.model.exists(ArithmeticData(self.x, self.y)):
+            return False
 
-class ArithmeticOutputToPowerInputTask(Task):
-    def _run(self, inputdata):
-        return [PowerInput(inputdata.value)]
+        self.model.add(ArithmeticData(self.x, self.y, self.x + self.y))
+        self.model.add(ArithmeticData(self.x, self.y, self.x - self.y))
+
+        return True
+
+    @property
+    def name(self):
+        return '{}+{}'.format(self.x, self.y)
 
 
 class PowerTask(Task):
-    def _run(self, inputdata):
-        return [PowerOutput(inputdata.x ** 2), PowerOutput(inputdata.x ** 3)]
+    def __init__(self, x, model=None):
+        super().__init__(model)
+        self.x = x
 
+    async def run(self):
+        if self.model.exists(PowerData(self.x)):
+            return False
+
+        self.model.add(PowerData(self.x ** 2))
+
+        return True
+
+    @property
+    def name(self):
+        return '{}**2'.format(self.x)
 
 class FailedTask(Task):
-    def _run(self, inputdata):
+    async def run(self):
         raise RuntimeError("Task has failed")
+
+    @property
+    def name(self):
+        return 'failed'
 
