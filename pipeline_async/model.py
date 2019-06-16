@@ -113,7 +113,7 @@ class SqlModel(Model):
 
         return sqlalchemy.Column(field.name, column_type, nullable=nullable)
 
-    def _get_row(self, data):
+    def _get_rowid(self, data):
         """
         Returns the row of the dataclass if it exists.
         If not, ``None`` is returned
@@ -122,6 +122,9 @@ class SqlModel(Model):
         Returns:
             int: row of the dataclass instance in its table, ``None`` if not found
         """
+        if hasattr(data, '_rowid'):
+            return data._rowid
+
         table_name = self._get_table_name(data)
         table = self.metadata.tables.get(table_name)
         if table is None:
@@ -132,7 +135,7 @@ class SqlModel(Model):
             value = getattr(data, field.name)
 
             if dataclasses.is_dataclass(field.type):
-                row_id = self._get_row(value)
+                row_id = self._get_rowid(value)
                 clause = table.c[field.name + '_id'] == row_id
 
             else:
@@ -152,10 +155,11 @@ class SqlModel(Model):
             if not rowid:
                 return None
 
+            data._rowid = rowid
             return rowid
 
     def exists(self, data):
-        return self._get_row(data) is not None
+        return self._get_rowid(data) is not None
 
     def add(self, data):
         # Check key fields
@@ -163,7 +167,7 @@ class SqlModel(Model):
             raise ValueError('Data must have at least one key field')
 
         # Check if exists
-        rowid = self._get_row(data)
+        rowid = self._get_rowid(data)
         if rowid is not None:
             return rowid
 
@@ -184,5 +188,6 @@ class SqlModel(Model):
         with self.engine.begin() as conn:
             result = conn.execute(table.insert(), row)  # pylint: disable=no-value-for-parameter
             logger.debug("Added output to table {}".format(table.name))
-            return result.inserted_primary_key[0]
-
+            rowid = result.inserted_primary_key[0]
+            data._rowid = rowid
+            return rowid
