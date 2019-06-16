@@ -28,12 +28,12 @@ class Model(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add(self, data):  # pragma: no cover
+    def add(self, data, check_exists=True):  # pragma: no cover
         raise NotImplementedError
 
 
 class PassThroughModel(Model):
-    def exists(self, data):
+    def exists(self, data, check_exists=True):
         return False
 
     def add(self, data):
