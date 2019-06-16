@@ -8,11 +8,12 @@ import datetime
 import dataclasses
 import inspect
 import enum
-import weakref
+import typing
 
 # Third party modules.
 import sqlalchemy
 import sqlalchemy.sql
+import pymongo
 from loguru import logger
 
 # Local modules.
@@ -39,8 +40,17 @@ class PassThroughModel(Model):
     def add(self, data):
         return []
 
+class _DatabaseModel(Model):
 
-class SqlModel(Model):
+    def _get_table_name(self, data_or_dataclass):
+        if not inspect.isclass(data_or_dataclass):
+            data_or_dataclass = type(data_or_dataclass)
+
+        name = data_or_dataclass.__name__.lower()
+        return "_".join(camelcase_to_words(name).split())
+
+
+class SqlModel(_DatabaseModel):
 
     TYPE_TO_SQLTYPE = {int: sqlalchemy.Integer, float: sqlalchemy.Float, str: sqlalchemy.String, bytes: sqlalchemy.LargeBinary, datetime.datetime: sqlalchemy.DateTime, datetime.date: sqlalchemy.Date, bool: sqlalchemy.Boolean}
 
@@ -54,13 +64,6 @@ class SqlModel(Model):
     def from_filepath(cls, filepath):
         engine = sqlalchemy.create_engine("sqlite:///" + str(filepath))
         return cls(engine)
-
-    def _get_table_name(self, data_or_dataclass):
-        if not inspect.isclass(data_or_dataclass):
-            data_or_dataclass = type(data_or_dataclass)
-
-        name = data_or_dataclass.__name__.lower()
-        return "_".join(camelcase_to_words(name).split())
 
     def _require_table(self, data_or_dataclass):
         table_name = self._get_table_name(data_or_dataclass)
@@ -191,3 +194,91 @@ class SqlModel(Model):
             rowid = result.inserted_primary_key[0]
             data._rowid = rowid
             return rowid
+
+class MongoModel(_DatabaseModel):
+
+    def __init__(self, database_name, *client_args, **client_kwargs):
+        self.client = pymongo.MongoClient(*client_args, **client_kwargs)
+        self.db = self.client[database_name]
+
+    def _convert_value(self, field, value):
+        if issubclass(field.type, enum.Enum):
+            return value.name
+        elif issubclass(field.type, datetime.date):
+            return datetime.datetime(value.year, value.month, value.day)
+        else:
+            return value
+
+    def _create_query(self, data, parents=()):
+        query = {}
+        for field in keyfields(data):
+            value = getattr(data, field.name)
+
+            if dataclasses.is_dataclass(field.type):
+                query.update(self._create_query(value, parents + (field.name,)))
+            else:
+                query['.'.join(parents) + field.name] = self._convert_value(field, value)
+
+        return query
+
+    def _get_objectid(self, data):
+        if hasattr(data, '_objectid'):
+            return data._objectid
+
+        table_name = self._get_table_name(data)
+        if table_name not in self.db.list_collection_names():
+            return None
+
+        collection = self.db[table_name]
+        query = self._create_query(data)
+
+        if not query:
+            logger.debug('No key fields')
+            return None
+
+        logger.debug("Find statement: {}", str(query).replace("\n", ""))
+
+        result = collection.find_one(query)
+        if result is None:
+            return None
+
+        objectid = result['_id']
+        data._objectid = objectid
+        return objectid
+
+    def exists(self, data):
+        return self._get_objectid(data) is not None
+
+    def _create_row(self, data):
+        row = {}
+
+        for field in dataclasses.fields(data):
+            name = field.name
+            value = getattr(data, name)
+
+            if dataclasses.is_dataclass(value):
+                row[name] = self._create_row(value)
+            else:
+                row[name] = self._convert_value(field, value)
+
+        return row
+
+    def add(self, data, check_exists=True):
+        # Check if exists
+        if hasattr(data, '_objectid'):
+            return data._objectid
+
+        if check_exists:
+            objectid = self._get_objectid(data)
+            if objectid is not None:
+                return objectid
+
+        # Insert
+        table_name = self._get_table_name(data)
+        row = self._create_row(data)
+
+        objectid = self.db[table_name].insert_one(row).inserted_id
+        logger.debug("Added output to table {}".format(table_name))
+
+        data._objectid = objectid
+        return objectid

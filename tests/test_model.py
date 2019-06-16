@@ -9,7 +9,7 @@ import enum
 import pytest
 
 # Local modules.
-from pipeline_async.model import SqlModel
+from pipeline_async.model import SqlModel, MongoModel
 import mock
 
 # Globals and constants variables.
@@ -76,3 +76,7 @@ def test_sqlmodel_exists_nodata(sqlmodel):
     data = mock.ArithmeticData(3, 99, 102)
     assert not sqlmodel.exists(data)
 
+@pytest.mark.parametrize('data', list_data)
+def test_mongomodel_exists(mongomodel, data):
+    mongomodel.add(data)
+    assert mongomodel.exists(data)
