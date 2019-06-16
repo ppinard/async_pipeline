@@ -7,6 +7,8 @@ import abc
 import datetime
 import dataclasses
 import inspect
+import enum
+import weakref
 
 # Third party modules.
 import sqlalchemy
@@ -40,7 +42,7 @@ class PassThroughModel(Model):
 
 class SqlModel(Model):
 
-    TYPE_TO_SQLTYPE = {int: sqlalchemy.Integer, float: sqlalchemy.Float, str: sqlalchemy.String, bytes: sqlalchemy.LargeBinary, datetime.datetime: sqlalchemy.DateTime, bool: sqlalchemy.Boolean}
+    TYPE_TO_SQLTYPE = {int: sqlalchemy.Integer, float: sqlalchemy.Float, str: sqlalchemy.String, bytes: sqlalchemy.LargeBinary, datetime.datetime: sqlalchemy.DateTime, datetime.date: sqlalchemy.Date, bool: sqlalchemy.Boolean}
 
     def __init__(self, engine):
         self.engine = engine
@@ -81,6 +83,7 @@ class SqlModel(Model):
     def _create_table(self, table_name, data_or_dataclass):
         # Add column for key fields of inputdata and all fields of outputdata.
         columns = [sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True)]
+
         for field in dataclasses.fields(data_or_dataclass):
             columns.append(self._create_column(field))
 
@@ -92,49 +95,94 @@ class SqlModel(Model):
         return table
 
     def _create_column(self, field):
-        column_type = self.TYPE_TO_SQLTYPE.get(field.type)
+        if dataclasses.is_dataclass(field.type):
+            subtable = self._require_table(field.type)
+            return sqlalchemy.Column(field.name + '_id', None, sqlalchemy.ForeignKey(subtable.name + '.id'))
+
+        if issubclass(field.type, enum.Enum):
+            column_type = sqlalchemy.Enum(field.type)
+        elif issubclass(field.type, str) and iskeyfield(field):
+            column_type = sqlalchemy.String(collation="NOCASE")
+        else:
+            column_type = self.TYPE_TO_SQLTYPE.get(field.type)
+
         if column_type is None:
             raise ValueError("Cannot convert {} to SQL column".format(field.name))
-
-        if column_type is sqlalchemy.String and iskeyfield(field):
-            column_type = sqlalchemy.String(collation="NOCASE")
 
         nullable = field.default is None
 
         return sqlalchemy.Column(field.name, column_type, nullable=nullable)
 
-    def exists(self, data):
-        # Find table
+    def _get_row(self, data):
+        """
+        Returns the row of the dataclass if it exists.
+        If not, ``None`` is returned
+        Args:
+            data (dataclasses.dataclass): instance
+        Returns:
+            int: row of the dataclass instance in its table, ``None`` if not found
+        """
         table_name = self._get_table_name(data)
         table = self.metadata.tables.get(table_name)
         if table is None:
-            return False
+            return None
 
-        # Build statement
         clauses = []
-        columns = []
         for field in keyfields(data):
-            clause = table.c[field.name] == getattr(data, field.name)
+            value = getattr(data, field.name)
+
+            if dataclasses.is_dataclass(field.type):
+                row_id = self._get_row(value)
+                clause = table.c[field.name + '_id'] == row_id
+
+            else:
+                clause = table.c[field.name] == value
+
             clauses.append(clause)
-            columns.append(table.c[field.name])
 
-        # No key fields
-        if not columns:
-            return False
+        if not clauses:
+            logger.debug('No key fields')
+            return None
 
-        statement = sqlalchemy.sql.select(columns).where(sqlalchemy.sql.and_(*clauses))
+        statement = sqlalchemy.sql.select([table.c.id]).where(sqlalchemy.sql.and_(*clauses))
         logger.debug("Find statement: {}", str(statement.compile()).replace("\n", ""))
 
-        # Execute
         with self.engine.begin() as conn:
-            row = conn.execute(statement).first()
-            return row is not None
+            rowid = conn.execute(statement).scalar()
+            if not rowid:
+                return None
+
+            return rowid
+
+    def exists(self, data):
+        return self._get_row(data) is not None
 
     def add(self, data):
-        table = self._require_table(data)
-        row = dataclasses.asdict(data)
+        # Check key fields
+        if not keyfields(data):
+            raise ValueError('Data must have at least one key field')
 
+        # Check if exists
+        rowid = self._get_row(data)
+        if rowid is not None:
+            return rowid
+
+        table = self._require_table(data)
+
+        # Create row
+        row = {}
+        for field in dataclasses.fields(data):
+            name = field.name
+            value = getattr(data, name)
+
+            if dataclasses.is_dataclass(value):
+                row[name + '_id'] = self.add(value)
+            else:
+                row[name] = value
+
+        # Insert
         with self.engine.begin() as conn:
             result = conn.execute(table.insert(), row)  # pylint: disable=no-value-for-parameter
             logger.debug("Added output to table {}".format(table.name))
             return result.inserted_primary_key[0]
+

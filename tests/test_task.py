@@ -26,7 +26,10 @@ async def test_task_run(sqlmodel):
     task = mock.ArithmeticTask(3, 4, sqlmodel)
     assert await task.run()
 
+    print(id(mock.ArithmeticData(3, 4)), id(mock.PowerData(3)), id(mock.PowerData(3)))
+
     assert sqlmodel.exists(mock.ArithmeticData(3, 4))
+    print(sqlmodel._get_row(mock.PowerData(3)))
     assert not sqlmodel.exists(mock.PowerData(3))
 
     # Run again, but no new data is added
