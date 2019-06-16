@@ -1,27 +1,20 @@
-""""""
+import asyncio
+import dataclasses
 
-# Standard library modules.
-
-# Third party modules.
-import pytest
-import attr
-
-# Local modules.
 from pipeline_async.task import Task
 
-# Globals and constants variables.
 
-@attr.s
+@dataclasses.dataclass
 class ArithmeticData:
-    x: float = attr.ib(metadata={"key": True})
-    y: float = attr.ib(metadata={"key": True})
-    value: float = attr.ib(default=None)
+    x: float = dataclasses.field(metadata={"key": True})
+    y: float = dataclasses.field(metadata={"key": True})
+    value: float = None
 
 
-@attr.s
+@dataclasses.dataclass
 class PowerData:
-    x: float = attr.ib(metadata={"key": True})
-    value: float = attr.ib(default=None)
+    x: float = dataclasses.field(metadata={"key": True})
+    value: float = None
 
 
 class ArithmeticTask(Task):

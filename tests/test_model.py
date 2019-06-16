@@ -1,12 +1,12 @@
 """"""
 
 # Standard library modules.
+import dataclasses
 import datetime
 import enum
 
 # Third party modules.
 import pytest
-import attr
 
 # Local modules.
 from pipeline_async.model import SqlModel
@@ -20,22 +20,22 @@ class Fruit(enum.Enum):
     ORANGE = "orange"
 
 
-@attr.s
+@dataclasses.dataclass
 class SubData:
-    integer: int = attr.ib(metadata={'key': True})
+    integer: int = dataclasses.field(metadata={'key': True})
 
 
-@attr.s
+@dataclasses.dataclass
 class Data:
-    integer: int = attr.ib(metadata={'key': True})
-    number: float = attr.ib()
-    text: str = attr.ib()
-    binary: bytes = attr.ib()
-    event: datetime.datetime = attr.ib()
-    event_date: datetime.date = attr.ib()
-    question: bool = attr.ib()
-    fruit: Fruit = attr.ib()
-    subdata: SubData = attr.ib(metadata={'key': True})
+    integer: int = dataclasses.field(metadata={'key': True})
+    number: float
+    text: str
+    binary: bytes
+    event: datetime.datetime
+    event_date: datetime.date
+    question: bool
+    fruit: Fruit
+    subdata: SubData = dataclasses.field(metadata={'key': True})
 
 
 list_data = [

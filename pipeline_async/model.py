@@ -5,18 +5,18 @@ __all__ = ['Model', 'PassThroughModel', 'SqlModel']
 # Standard library modules.
 import abc
 import datetime
+import dataclasses
 import inspect
 import enum
 import weakref
 
 # Third party modules.
-import attr
 import sqlalchemy
 import sqlalchemy.sql
 from loguru import logger
 
 # Local modules.
-from .datautil import iskeyfield, keyfields, fields
+from .datautil import iskeyfield, keyfields
 from .util import camelcase_to_words
 
 # Globals and constants variables.
@@ -49,8 +49,6 @@ class SqlModel(Model):
 
         self.metadata = sqlalchemy.MetaData()
         self.metadata.reflect(engine)
-
-        self._cache = {}
 
     @classmethod
     def from_filepath(cls, filepath):
@@ -86,7 +84,7 @@ class SqlModel(Model):
         # Add column for key fields of inputdata and all fields of outputdata.
         columns = [sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True)]
 
-        for field in fields(data_or_dataclass):
+        for field in dataclasses.fields(data_or_dataclass):
             columns.append(self._create_column(field))
 
         # Create table.
@@ -97,7 +95,7 @@ class SqlModel(Model):
         return table
 
     def _create_column(self, field):
-        if attr.has(field.type):
+        if dataclasses.is_dataclass(field.type):
             subtable = self._require_table(field.type)
             return sqlalchemy.Column(field.name + '_id', None, sqlalchemy.ForeignKey(subtable.name + '.id'))
 
@@ -116,6 +114,14 @@ class SqlModel(Model):
         return sqlalchemy.Column(field.name, column_type, nullable=nullable)
 
     def _get_row(self, data):
+        """
+        Returns the row of the dataclass if it exists.
+        If not, ``None`` is returned
+        Args:
+            data (dataclasses.dataclass): instance
+        Returns:
+            int: row of the dataclass instance in its table, ``None`` if not found
+        """
         table_name = self._get_table_name(data)
         table = self.metadata.tables.get(table_name)
         if table is None:
@@ -125,7 +131,7 @@ class SqlModel(Model):
         for field in keyfields(data):
             value = getattr(data, field.name)
 
-            if attr.has(field.type):
+            if dataclasses.is_dataclass(field.type):
                 row_id = self._get_row(value)
                 clause = table.c[field.name + '_id'] == row_id
 
@@ -165,11 +171,11 @@ class SqlModel(Model):
 
         # Create row
         row = {}
-        for field in fields(data):
+        for field in dataclasses.fields(data):
             name = field.name
             value = getattr(data, name)
 
-            if attr.has(value):
+            if dataclasses.is_dataclass(value):
                 row[name + '_id'] = self.add(value)
             else:
                 row[name] = value
