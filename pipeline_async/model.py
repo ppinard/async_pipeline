@@ -162,10 +162,6 @@ class SqlModel(Model):
         return self._get_rowid(data) is not None
 
     def add(self, data, check_exists=True):
-        # Check key fields
-        if not keyfields(data):
-            raise ValueError('Data must have at least one key field')
-
         # Check if exists
         if hasattr(data, '_rowid'):
             return data._rowid
