@@ -161,17 +161,19 @@ class SqlModel(Model):
     def exists(self, data):
         return self._get_rowid(data) is not None
 
-    def add(self, data):
+    def add(self, data, check_exists=True):
         # Check key fields
         if not keyfields(data):
             raise ValueError('Data must have at least one key field')
 
         # Check if exists
-        rowid = self._get_rowid(data)
-        if rowid is not None:
-            return rowid
+        if hasattr(data, '_rowid'):
+            return data._rowid
 
-        table = self._require_table(data)
+        if check_exists:
+            rowid = self._get_rowid(data)
+            if rowid is not None:
+                return rowid
 
         # Create row
         row = {}
@@ -180,11 +182,13 @@ class SqlModel(Model):
             value = getattr(data, name)
 
             if dataclasses.is_dataclass(value):
-                row[name + '_id'] = self.add(value)
+                row[name + '_id'] = self.add(value, check_exists)
             else:
                 row[name] = value
 
         # Insert
+        table = self._require_table(data)
+
         with self.engine.begin() as conn:
             result = conn.execute(table.insert(), row)  # pylint: disable=no-value-for-parameter
             logger.debug("Added output to table {}".format(table.name))
