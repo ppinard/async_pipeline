@@ -1,8 +1,15 @@
+
+# Standard library modules.
 import asyncio
 import dataclasses
+import typing
 
+# Third party modules.
+
+# Local modules.
 from pipeline_async.task import Task
 
+# Globals and constants variables.
 
 @dataclasses.dataclass
 class ArithmeticData:
@@ -16,6 +23,13 @@ class PowerData:
     x: float = dataclasses.field(metadata={"key": True})
     value: float = None
 
+@dataclasses.dataclass
+class MultiData:
+    results: typing.List[ArithmeticData]
+
+print(dataclasses.fields(MultiData)[0].type)
+print(dir(dataclasses.fields(MultiData)[0].type))
+print(getattr(dataclasses.fields(MultiData)[0].type, '__origin__', None))
 
 class ArithmeticTask(Task):
     def __init__(self, x, y, model=None):
