@@ -9,7 +9,7 @@ import abc
 from loguru import logger
 
 # Local modules.
-from .model import PassThroughModel
+from .model.passthrough import PassThroughModel
 
 # Globals and constants variables.
 

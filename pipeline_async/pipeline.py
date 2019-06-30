@@ -41,7 +41,7 @@ class Pipeline:
             try:
                 success = await task.run()
             except:
-                logger.error('Task #{} failed: {}', i, task_name)
+                logger.exception('Task #{} failed: {}', i, task_name)
                 success = False
 
                 if self.stop_on_failure:

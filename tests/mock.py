@@ -1,8 +1,8 @@
-
 # Standard library modules.
 import asyncio
 import dataclasses
-import typing
+import datetime
+import enum
 
 # Third party modules.
 
@@ -11,62 +11,60 @@ from pipeline_async.task import Task
 
 # Globals and constants variables.
 
-@dataclasses.dataclass
-class ArithmeticData:
-    x: float = dataclasses.field(metadata={"key": True})
-    y: float = dataclasses.field(metadata={"key": True})
-    value: float = None
+
+class FlowerColor(enum.Enum):
+    PINK = 'pink'
+    WHITE = 'WHITE'
 
 
 @dataclasses.dataclass
-class PowerData:
-    x: float = dataclasses.field(metadata={"key": True})
-    value: float = None
+class TaxonomyData:
+    kingdom: str = dataclasses.field(metadata={"key": True})
+    order: str = dataclasses.field(metadata={"key": True})
+    family: str = dataclasses.field(metadata={"key": True})
+    genus: str = dataclasses.field(metadata={"key": True})
 
 @dataclasses.dataclass
-class MultiData:
-    results: typing.List[ArithmeticData]
+class TreeData:
+    serial_number: int = dataclasses.field(metadata={"key": True})
+    taxonomy: TaxonomyData = dataclasses.field(metadata={"key": True})
+    specie: str = dataclasses.field(metadata={'key': True})
+    diameter_m: float = None
+    long_description: bytes = None
+    has_flower: bool = None
+    flower_color: FlowerColor = None
+    plantation_datetime: datetime.datetime = None
+    last_pruning_date: datetime.date = None
 
-print(dataclasses.fields(MultiData)[0].type)
-print(dir(dataclasses.fields(MultiData)[0].type))
-print(getattr(dataclasses.fields(MultiData)[0].type, '__origin__', None))
 
-class ArithmeticTask(Task):
-    def __init__(self, x, y, model=None):
+class PlantMagnoliaTask(Task):
+    def __init__(self, serial_number, specie, model=None):
         super().__init__(model)
-        self.x = x
-        self.y = y
+        self.serial_number = serial_number
+        self.specie = specie
 
     async def run(self):
-        if self.model.exists(ArithmeticData(self.x, self.y)):
+        taxonomy = TaxonomyData('plantae', 'magnoliales', 'magnoliaceae', 'magnolia')
+        treedata = TreeData(self.serial_number, taxonomy, self.specie)
+
+        if self.model.exists(treedata):
             return False
 
-        self.model.add(ArithmeticData(self.x, self.y, self.x + self.y))
-        self.model.add(ArithmeticData(self.x, self.y, self.x - self.y))
+        treedata.diameter_m = 0.1
+        treedata.long_description = 'As with all Magnoliaceae, the perianth is undifferentiated, with 9–15 tepals in 3 or more whorls. The flowers are bisexual with numerous adnate carpels and stamens are arranged in a spiral fashion on the elongated receptacle. The fruit dehisces along the dorsal sutures of the carpels. The pollen is monocolpate, and the embryo development is of the Polygonum type.'.encode('utf8')
+        treedata.has_flower = True
+        treedata.flower_color = FlowerColor.PINK
+        treedata.plantation_date = datetime.datetime.now()
+        treedata.last_pruning = datetime.datetime.now().date
+
+        self.model.add(treedata)
 
         return True
 
     @property
     def name(self):
-        return '{}+{}'.format(self.x, self.y)
+        return 'Planting {}'.format(self.specie)
 
-
-class PowerTask(Task):
-    def __init__(self, x, model=None):
-        super().__init__(model)
-        self.x = x
-
-    async def run(self):
-        if self.model.exists(PowerData(self.x)):
-            return False
-
-        self.model.add(PowerData(self.x ** 2))
-
-        return True
-
-    @property
-    def name(self):
-        return '{}**2'.format(self.x)
 
 class FailedTask(Task):
     async def run(self):
@@ -74,5 +72,5 @@ class FailedTask(Task):
 
     @property
     def name(self):
-        return 'failed'
+        return "failed"
 

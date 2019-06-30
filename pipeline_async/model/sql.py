@@ -1,61 +1,24 @@
 """"""
 
-__all__ = ['Model', 'PassThroughModel', 'SqlModel']
+__all__ = ['SqlModel']
 
 # Standard library modules.
-import abc
-import re
-import datetime
 import dataclasses
-import inspect
+import datetime
 import enum
 
 # Third party modules.
 import sqlalchemy
 import sqlalchemy.sql
+
 from loguru import logger
 
 # Local modules.
+from .base import ModelBase, iskeyfield, keyfields
 
 # Globals and constants variables.
 
-def iskeyfield(field):
-    return field.name.startswith('key') or field.metadata.get('key', False)
-
-def keyfields(dataclass):
-    return tuple(field for field in dataclasses.fields(dataclass) if iskeyfield(field))
-
-def camelcase_to_words(text):
-    return re.sub("([a-z0-9])([A-Z])", r"\1 \2", text)
-
-class Model(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def exists(self, data):  # pragma: no cover
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def add(self, data, check_exists=True):  # pragma: no cover
-        raise NotImplementedError
-
-
-class PassThroughModel(Model):
-    def exists(self, data, check_exists=True):
-        return False
-
-    def add(self, data):
-        return []
-
-class _DatabaseModel(Model):
-
-    def _get_table_name(self, data_or_dataclass):
-        if not inspect.isclass(data_or_dataclass):
-            data_or_dataclass = type(data_or_dataclass)
-
-        name = data_or_dataclass.__name__.lower()
-        return "_".join(camelcase_to_words(name).split())
-
-
-class SqlModel(_DatabaseModel):
+class SqlModel(ModelBase):
 
     TYPE_TO_SQLTYPE = {int: sqlalchemy.Integer, float: sqlalchemy.Float, str: sqlalchemy.String, bytes: sqlalchemy.LargeBinary, datetime.datetime: sqlalchemy.DateTime, datetime.date: sqlalchemy.Date, bool: sqlalchemy.Boolean}
 
@@ -172,12 +135,12 @@ class SqlModel(_DatabaseModel):
     def add(self, data, check_exists=True):
         # Check if exists
         if hasattr(data, '_rowid'):
-            return data._rowid
+            return False
 
         if check_exists:
             rowid = self._get_rowid(data)
             if rowid is not None:
-                return rowid
+                return False
 
         # Create row
         row = {}
@@ -198,4 +161,4 @@ class SqlModel(_DatabaseModel):
             logger.debug("Added output to table {}".format(table.name))
             rowid = result.inserted_primary_key[0]
             data._rowid = rowid
-            return rowid
+            return True

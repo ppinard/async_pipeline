@@ -1,18 +1,21 @@
 """"""
 
 # Standard library modules.
+import enum
+import dataclasses
+import datetime
 
 # Third party modules.
 import pytest
 
 # Local modules.
-from pipeline_async.model import SqlModel
+import mock
+from pipeline_async.model.sql import SqlModel
+from pipeline_async.model.unqlite import UnqliteModel
 
 # Globals and constants variables.
 
-
 @pytest.fixture
-def sqlmodel(tmp_path_factory):
-    return SqlModel.from_filepath(
-        tmp_path_factory.mktemp("test").joinpath("model.db")
-    )
+def treedata():
+    taxonomy = mock.TaxonomyData('plantae', 'malvales', 'malvaceae', 'hibiscus')
+    return mock.TreeData(1, taxonomy, 'Hibiscus abelmoschus')
