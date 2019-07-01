@@ -12,8 +12,8 @@ from .base import ModelBase
 # Globals and constants variables.
 
 class PassThroughModel(ModelBase):
-    def exists(self, data, check_exists=True):
+    def exists(self, data):
         return False
 
-    def add(self, data):
+    def add(self, data, check_exists=True):
         return []
