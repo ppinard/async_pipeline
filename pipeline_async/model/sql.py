@@ -149,7 +149,8 @@ class SqlModel(ModelBase):
             value = getattr(data, name)
 
             if dataclasses.is_dataclass(value):
-                row[name + '_id'] = self.add(value, check_exists)
+                self.add(value, check_exists)
+                row[name + '_id'] = value._rowid
             else:
                 row[name] = value
 
