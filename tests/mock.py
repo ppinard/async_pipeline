@@ -2,7 +2,6 @@
 import asyncio
 import dataclasses
 import datetime
-import enum
 
 # Third party modules.
 
@@ -10,11 +9,6 @@ import enum
 from pipeline_async.task import Task
 
 # Globals and constants variables.
-
-
-class FlowerColor(enum.Enum):
-    PINK = 'pink'
-    WHITE = 'WHITE'
 
 
 @dataclasses.dataclass
@@ -32,7 +26,6 @@ class TreeData:
     diameter_m: float = None
     long_description: bytes = None
     has_flower: bool = None
-    flower_color: FlowerColor = None
     plantation_datetime: datetime.datetime = None
     last_pruning_date: datetime.date = None
 
@@ -53,7 +46,6 @@ class PlantMagnoliaTask(Task):
         treedata.diameter_m = 0.1
         treedata.long_description = 'As with all Magnoliaceae, the perianth is undifferentiated, with 9–15 tepals in 3 or more whorls. The flowers are bisexual with numerous adnate carpels and stamens are arranged in a spiral fashion on the elongated receptacle. The fruit dehisces along the dorsal sutures of the carpels. The pollen is monocolpate, and the embryo development is of the Polygonum type.'.encode('utf8')
         treedata.has_flower = True
-        treedata.flower_color = FlowerColor.PINK
         treedata.plantation_date = datetime.datetime.now()
         treedata.last_pruning = datetime.datetime.now().date
 

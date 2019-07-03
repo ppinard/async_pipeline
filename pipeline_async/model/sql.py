@@ -5,7 +5,6 @@ __all__ = ['SqlModel']
 # Standard library modules.
 import dataclasses
 import datetime
-import enum
 
 # Third party modules.
 import sqlalchemy
@@ -61,14 +60,11 @@ class SqlModel(ModelBase):
             subtable = self._require_table(field.type)
             return sqlalchemy.Column(field.name + '_id', None, sqlalchemy.ForeignKey(subtable.name + '.id'))
 
-        if issubclass(field.type, enum.Enum):
-            column_type = sqlalchemy.Enum(field.type)
-        elif issubclass(field.type, str) and iskeyfield(field):
+        if issubclass(field.type, str) and iskeyfield(field):
             column_type = sqlalchemy.String(collation="NOCASE")
-        else:
+        elif field.type in self.TYPE_TO_SQLTYPE:
             column_type = self.TYPE_TO_SQLTYPE.get(field.type)
-
-        if column_type is None:
+        else:
             raise ValueError("Cannot convert {} to SQL column".format(field.name))
 
         nullable = field.default is None
@@ -99,7 +95,6 @@ class SqlModel(ModelBase):
             if dataclasses.is_dataclass(field.type):
                 row_id = self._get_rowid(value)
                 clause = table.c[field.name + '_id'] == row_id
-
             else:
                 clause = table.c[field.name] == value
 
