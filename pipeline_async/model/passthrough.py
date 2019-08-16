@@ -16,4 +16,4 @@ class PassThroughModel(ModelBase):
         return False
 
     def add(self, data, check_exists=True):
-        return []
+        return False
