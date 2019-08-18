@@ -27,3 +27,12 @@ def test_sqlmodel(model, treedata):
 
     # Add twice
     assert not model.add(treedata)
+
+def test_sqlmodel_fetch(model, treedata):
+    assert model.add(treedata)
+
+    newtreedata = mock.TreeData(treedata.serial_number, treedata.taxonomy, treedata.specie)
+    assert newtreedata.diameter_m is None
+
+    model.fetch(newtreedata)
+    assert newtreedata.diameter_m == pytest.approx(3.0, abs=1e-3)
