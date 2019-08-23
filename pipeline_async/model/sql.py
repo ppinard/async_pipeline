@@ -158,3 +158,43 @@ class SqlModel(ModelBase):
             rowid = result.inserted_primary_key[0]
             data._rowid = rowid
             return True
+
+    def fetch(self, data):
+        table_name = self._get_table_name(data)
+        table = self.metadata.tables.get(table_name)
+        if table is None:
+            raise ValueError('Data does not exists')
+
+        clauses = []
+        if hasattr(data, '_rowid'):
+            clauses.append(table.c['id'] == data._rowid)
+        else:
+            for field in keyfields(data):
+                value = getattr(data, field.name)
+
+                if dataclasses.is_dataclass(field.type):
+                    row_id = self._get_rowid(value)
+                    clause = table.c[field.name + '_id'] == row_id
+                else:
+                    clause = table.c[field.name] == value
+
+                clauses.append(clause)
+
+        if not clauses:
+            raise ValueError('Data does not exists')
+
+        statement = sqlalchemy.sql.select(table.columns).where(sqlalchemy.sql.and_(*clauses))
+        logger.debug("Fetch statement: {}", str(statement.compile()).replace("\n", ""))
+
+        with self.engine.begin() as conn:
+            row = conn.execute(statement).fetchone()
+            if row is None:
+                raise ValueError('Data does not exists')
+
+            for column, value in row.items():
+                if column.endswith('_id'):
+                    pass
+                else:
+                    setattr(data, column, value)
+
+        return data
