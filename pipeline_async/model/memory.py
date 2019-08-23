@@ -1,6 +1,7 @@
 """"""
 
 # Standard library modules.
+import dataclasses
 
 # Third party modules.
 
@@ -22,6 +23,15 @@ class MemoryModel(ModelBase):
         if check_exists and self.exists(data):
             return False
 
+        # Add data from fields
+        for field in dataclasses.fields(data):
+            name = field.name
+            value = getattr(data, name)
+
+            if dataclasses.is_dataclass(value):
+                self.add(value, check_exists)
+
+        # Add actual data
         key = self._get_table_name(data)
         self.storage.setdefault(key, []).append(data)
         return True
