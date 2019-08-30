@@ -25,3 +25,6 @@ def test_memorymodel(model, treedata):
 
     # Add twice
     assert not model.add(treedata)
+
+    assert len(model.get_alldata(mock.TreeData)) == 1
+    assert len(model.get_alldata(mock.TaxonomyData)) == 1
