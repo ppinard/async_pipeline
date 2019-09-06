@@ -54,3 +54,6 @@ class MemoryModel(ModelBase):
     def get_alldata(self, dataclass):
         table = self._get_table_name(dataclass)
         return tuple(self.storage.get(table, {}).values())
+
+    def clear(self):
+        self.storage.clear()
