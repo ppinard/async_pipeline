@@ -36,7 +36,7 @@ class PlantMagnoliaTask(Task):
         self.serial_number = serial_number
         self.specie = specie
 
-    async def run(self):
+    async def run(self, progress=True):
         taxonomy = TaxonomyData('plantae', 'magnoliales', 'magnoliaceae', 'magnolia')
         treedata = TreeData(self.serial_number, taxonomy, self.specie)
 
@@ -59,7 +59,7 @@ class PlantMagnoliaTask(Task):
 
 
 class FailedTask(Task):
-    async def run(self):
+    async def run(self, progress=True):
         raise RuntimeError("Task has failed")
 
     @property

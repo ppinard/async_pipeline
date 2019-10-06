@@ -21,7 +21,7 @@ class Task(metaclass=abc.ABCMeta):
         self.model = model
 
     @abc.abstractmethod
-    async def run(self):
+    async def run(self, progress=True):
         """
         Executes the task
         Returns ``True`` if the task was executed, ``False`` if skipped.

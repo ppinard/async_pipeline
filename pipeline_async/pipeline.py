@@ -4,7 +4,6 @@ __all__ = ['Pipeline']
 
 # Standard library modules.
 import asyncio
-from concurrent.futures.thread import ThreadPoolExecutor
 
 # Third party modules.
 from loguru import logger
@@ -39,7 +38,7 @@ class Pipeline:
 
             # Run task.
             try:
-                success = await task.run()
+                success = await task.run(progress=progress)
             except:
                 logger.exception('Task #{} failed: {}', i, task_name)
                 success = False
