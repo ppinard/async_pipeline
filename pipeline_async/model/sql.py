@@ -145,7 +145,7 @@ class SqlModel(ModelBase):
 
             if dataclasses.is_dataclass(value):
                 self.add(value, check_exists)
-                row[name + '_id'] = value._rowid
+                row[name + '_id'] = int(value._rowid)
             else:
                 row[name] = value
 
