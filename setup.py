@@ -18,7 +18,7 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(BASEDIR, 'README.rst'), 'r') as fp:
     LONG_DESCRIPTION = fp.read()
 
-PACKAGES = find_packages(include=['pipeline_async'])
+PACKAGES = find_packages()
 
 with open(os.path.join(BASEDIR, 'requirements.txt'), 'r') as fp:
     INSTALL_REQUIRES = fp.read().splitlines()
