@@ -13,7 +13,7 @@ import sqlalchemy.sql
 from loguru import logger
 
 # Local modules.
-from .base import ModelBase, iskeyfield, keyfields
+from pipeline_async.model.base import ModelBase, iskeyfield, keyfields
 
 # Globals and constants variables.
 

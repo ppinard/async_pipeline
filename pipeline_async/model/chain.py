@@ -5,7 +5,7 @@
 # Third party modules.
 
 # Local modules.
-from .base import ModelBase
+from pipeline_async.model.base import ModelBase
 
 # Globals and constants variables.
 

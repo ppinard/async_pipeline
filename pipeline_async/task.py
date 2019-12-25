@@ -9,7 +9,7 @@ import abc
 from loguru import logger
 
 # Local modules.
-from .model.passthrough import PassThroughModel
+from pipeline_async.model.passthrough import PassThroughModel
 
 # Globals and constants variables.
 

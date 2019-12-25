@@ -12,7 +12,7 @@ import unqlite
 from loguru import logger
 
 # Local modules.
-from .base import ModelBase, keyfields
+from pipeline_async.model.base import ModelBase, keyfields
 
 # Globals and constants variables.
 
